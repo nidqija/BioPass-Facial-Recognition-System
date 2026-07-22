@@ -1,2 +1,10 @@
+# Virtual environments
 .venv/
+**/.venv/
+
+# Specific ignored files
 .server/clean.py
+
+# Python Cache & Artifacts
+**/__pycache__/
+*.py[cod]
