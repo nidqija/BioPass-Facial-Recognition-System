@@ -1,0 +1,8 @@
+services:
+  floci:
+    image: floci/floci:latest
+    ports:
+      - "4566:4566"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock  # Required if testing real containers like Lambda or RDS
+      - ./data:/app/data                          # Optional: For persistent storage
