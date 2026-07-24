@@ -1,8 +1,27 @@
+version: "3.8"
+
 services:
   floci:
     image: floci/floci:latest
+    container_name: floci
     ports:
       - "4566:4566"
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock  # Required if testing real containers like Lambda or RDS
-      - ./data:/app/data                          # Optional: For persistent storage
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./data:/app/data
+    environment:
+      - AWS_DEFAULT_REGION=us-east-1
+
+  dynamodb-gui:
+    image: aaronshaf/dynamodb-admin
+    container_name: dynamodb-gui
+    ports:
+      - "8001:8001"
+    environment:
+      # Tell the GUI to connect to the 'floci' service internally
+      - DYNAMO_ENDPOINT=http://floci:4566
+      - AWS_REGION=us-east-1
+      - AWS_ACCESS_KEY_ID=floci
+      - AWS_SECRET_ACCESS_KEY=floci
+    depends_on:
+      - floci
