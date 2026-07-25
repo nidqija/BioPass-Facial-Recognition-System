@@ -71,6 +71,7 @@ function UploadSlot({
   accent,
   accept,
   tag,
+  capture,
   fileName,
   onChange,
 }: {
@@ -80,6 +81,7 @@ function UploadSlot({
   hint: string;
   accent: string;
   accept: string;
+  capture?: "user" | "environment";
   tag?: string;
   fileName: string | null;
   onChange: (name: string | null) => void;
@@ -133,13 +135,17 @@ function UploadSlot({
           id={id}
           type="file"
           accept={accept}
+          capture={capture}
           onChange={(e) => onChange(e.target.files?.[0]?.name ?? null)}
           className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
         />
+
+        
       </div>
     </div>
   );
 }
+
 
 export default function CustomerPage() {
   const [fullName, setFullName] = useState("");
@@ -231,9 +237,11 @@ export default function CustomerPage() {
                 hint="Clear selfie, good light, eyes forward — used to skip the will-call line"
                 accent="#D97706"
                 accept="image/*"
+                capture="user"
                 fileName={faceFile}
                 onChange={setFaceFile}
               />
+
             </div>
 
             <Perforation />
