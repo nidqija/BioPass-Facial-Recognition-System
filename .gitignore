@@ -8,3 +8,6 @@
 # Python Cache & Artifacts
 **/__pycache__/
 *.py[cod]
+
+data/
+

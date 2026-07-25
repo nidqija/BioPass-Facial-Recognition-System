@@ -14,6 +14,10 @@ import {
   Check,
 } from "lucide-react";
 
+
+const FASTAPI_URL = import.meta.env.FASTAPI_URL || "http://localhost:8000";
+
+
 /**
  * Design tokens (Light Theme)
  * bg         #F8FAFC  page slate light
@@ -147,13 +151,60 @@ function UploadSlot({
 }
 
 
+
+
 export default function CustomerPage() {
   const [fullName, setFullName] = useState("");
   const [paymentFile, setPaymentFile] = useState<string | null>(null);
   const [faceFile, setFaceFile] = useState<string | null>(null);
+  const [loading , setLoading] = useState(false);
 
   const ticketNo = "BP-2607-0842";
   const ready = fullName.trim().length > 1 && paymentFile && faceFile;
+
+
+  const handleSubmit = async (e: React.FormEvent) => {
+
+
+    e.preventDefault();
+    setLoading(true);
+
+    const payload = {
+      fullName : fullName,
+      paymentFile : paymentFile ?? ""
+    };
+
+    try {
+
+
+      const res = await fetch(`${FASTAPI_URL}/api/insert-name`, {
+         method : "POST",
+         headers : {
+          'Content-Type' : 'application/json',
+         },
+         body : JSON.stringify(payload),
+      });
+
+      if (!res.ok){
+        throw new Error("Failed to submit form");
+      }
+
+      const data = await res.json();
+      console.log("Form submitted successfully:", data);
+      fullName && setFullName("");
+      paymentFile && setPaymentFile(null);
+      faceFile && setFaceFile(null);
+
+    } catch (error) {
+
+      console.log("Error submitting form:", error);
+
+
+    } finally{
+      setLoading(false);
+    }
+    
+  }
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-[#F8FAFC] p-4 font-sans antialiased sm:p-10">
@@ -188,7 +239,7 @@ export default function CustomerPage() {
             </div>
           </div>
 
-          <form onSubmit={(e) => e.preventDefault()}>
+          <form onSubmit={handleSubmit}>
             {/* Route line */}
             <div className="flex items-center gap-3 px-6 pt-5 font-mono text-[11px] text-[#64748B]">
               <span className="font-semibold text-[#0F172A]">REGISTRATION</span>

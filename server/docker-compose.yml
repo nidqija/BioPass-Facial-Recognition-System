@@ -11,6 +11,8 @@ services:
       - ./data:/app/data
     environment:
       - AWS_DEFAULT_REGION=us-east-1
+      - FLOCI_STORAGE_MODE=hybrid
+      - FLOCI_STORAGE_PERSISTENT_PATH=/app/data
 
   dynamodb-gui:
     image: aaronshaf/dynamodb-admin
