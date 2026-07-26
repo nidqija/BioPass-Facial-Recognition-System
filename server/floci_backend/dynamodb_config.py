@@ -1,4 +1,4 @@
-from config.floci_config import dynamodb
+from .config.floci_config import dynamodb
 
 try:
     response = dynamodb.create_table(
