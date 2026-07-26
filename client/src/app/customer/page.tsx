@@ -13,6 +13,7 @@ import {
   ArrowRight,
   Check,
 } from "lucide-react";
+import Navbar from "../reusable_components/Navbar";
 
 
 const FASTAPI_URL = import.meta.env.FASTAPI_URL || "http://localhost:8000";
@@ -207,6 +208,8 @@ export default function CustomerPage() {
   }
 
   return (
+    <>
+    <Navbar />
     <div className="flex min-h-screen items-center justify-center bg-[#F8FAFC] p-4 font-sans antialiased sm:p-10">
       <div className="w-full max-w-md">
         {/* Eyebrow */}
@@ -324,5 +327,6 @@ export default function CustomerPage() {
         </div>
       </div>
     </div>
+    </>
   );
 }
