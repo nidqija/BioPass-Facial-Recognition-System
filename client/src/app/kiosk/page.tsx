@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
+import Footer from "../reusable_components/Footer";
 import {
   Camera,
   CheckCircle2,
@@ -47,6 +48,7 @@ export default function KioskPage() {
   }, []);
 
   return (
+    <>
     <div className="flex min-h-screen flex-col bg-[#F8FAFC] font-sans antialiased text-[#010101]">
       {/* Top Bar */}
       <header className="flex items-center justify-between border-b border-[#E2E8F0] bg-white/80 px-6 py-4 backdrop-blur-md sm:px-8 shadow-xs">
@@ -173,5 +175,7 @@ export default function KioskPage() {
         Kiosk ID: KSK-04 • Powered by Midnight Static Verification System
       </footer>
     </div>
+    <Footer/>
+    </>
   );
 }

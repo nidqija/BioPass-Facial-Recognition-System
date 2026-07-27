@@ -14,6 +14,7 @@ import {
   Check,
 } from "lucide-react";
 import Navbar from "../reusable_components/Navbar";
+import Footer from "../reusable_components/Footer";
 
 
 const FASTAPI_URL = import.meta.env.FASTAPI_URL || "http://localhost:8000";
@@ -327,6 +328,7 @@ export default function CustomerPage() {
         </div>
       </div>
     </div>
+    <Footer/>
     </>
   );
 }

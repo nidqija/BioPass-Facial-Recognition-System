@@ -11,6 +11,7 @@ import {
   Search,
   Sparkles,
 } from "lucide-react";
+import Footer from "../reusable_components/Footer";
 
 interface Concert {
   id: string;
@@ -92,6 +93,7 @@ export default function HomePage(): React.ReactElement {
   );
 
   return (
+    <>
     <div className="relative min-h-screen bg-[#F8FAFC] font-sans text-[#0F172A] antialiased selection:bg-[#D97706]/20 selection:text-[#D97706]">
       <Navbar />
 
@@ -276,5 +278,7 @@ export default function HomePage(): React.ReactElement {
         </div>
       </main>
     </div>
+    <Footer/>
+    </>
   );
 }
