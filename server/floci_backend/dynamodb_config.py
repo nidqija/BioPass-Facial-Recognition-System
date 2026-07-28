@@ -1,28 +1,44 @@
-from .config.floci_config import dynamodb
+from config.floci_config import dynamodb
 
-try:
-    response = dynamodb.create_table(
-        TableName="my-bucket-table",
-        KeySchema=[
-            {"AttributeName": "id", "KeyType": "HASH"},  # Partition key for table , we define this as id
-            {"AttributeName": "name", "KeyType": "RANGE"},  # we add another attributes which is name
+
+
+# put the table names and columns in a list to create the table in dynamodb
+tables_to_create = [
+    {
+        "TableName": "my-bucket-table",
+        "KeySchema": [
+            {"AttributeName": "id", "KeyType": "HASH"},
+            {"AttributeName": "name", "KeyType": "RANGE"}
         ],
-        # Required by DynamoDB for any key in KeySchema
-        AttributeDefinitions=[
-            {"AttributeName": "id", "AttributeType": "S"},  # we define the type of the attribute as string , we can also use N for number and B for binary
-            {"AttributeName": "name", "AttributeType": "S"},
-        
+        "AttributeDefinitions": [
+            {"AttributeName": "id", "AttributeType": "S"},
+            {"AttributeName": "name", "AttributeType": "S"}
         ],
-        BillingMode="PAY_PER_REQUEST", # add billing mode as pay per request , as this is the standard mode for dynamodb , we can also use provisioned mode which is more cost effective for large scale applications
-    )
+        "BillingMode": "PAY_PER_REQUEST"
+    },
+    {
+        "TableName": "events_data",
+        "KeySchema": [
+            {"AttributeName": "id", "KeyType": "HASH"},
+            {"AttributeName": "event_name", "KeyType": "RANGE"}
+        ],
+        # Only include attributes used in KeySchema here
+        "AttributeDefinitions": [
+            {"AttributeName": "id", "AttributeType": "S"},
+            {"AttributeName": "event_name", "AttributeType": "S"}
+        ],
+        "BillingMode": "PAY_PER_REQUEST"
+    }
+]
 
-    # log the table name to the console for debugging
-    print("Table created:", response["TableDescription"]["TableName"])
+# iteratively create the tables in dynamodb using the list of table names and columns
+for table_config in tables_to_create:
+    try:
+        response = dynamodb.create_table(**table_config)
+        print("Table created:", response["TableDescription"]["TableName"])
+    except dynamodb.exceptions.ResourceInUseException:
+        print(f"Table '{table_config['TableName']}' already exists!")
 
-    # if table is already created , catch the exception and log to the console
-except dynamodb.exceptions.ResourceInUseException:
-    print("Table already exists!")
-
-# list all the tables in the dynamodb and log to the console
+# List all tables in DynamoDB
 tables = dynamodb.list_tables()
 print("All tables in Floci:", tables["TableNames"])
