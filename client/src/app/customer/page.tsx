@@ -36,7 +36,7 @@ function Barcode({ seed }: { seed: string }) {
   const bars = useMemo(() => {
     let h = 0;
     for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) >>> 0;
-    return Array.from({ length: 46 }, (_, i) => {
+    return Array.from({ length: 46 }, () => {
       h = (h * 1103515245 + 12345) >>> 0;
       const w = 1 + (h % 4);
       return w;
@@ -159,7 +159,7 @@ export default function CustomerPage() {
   const [fullName, setFullName] = useState("");
   const [paymentFile, setPaymentFile] = useState<string | null>(null);
   const [faceFile, setFaceFile] = useState<string | null>(null);
-  const [loading , setLoading] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const ticketNo = "BP-2607-0842";
   const ready = fullName.trim().length > 1 && paymentFile && faceFile;
@@ -315,10 +315,10 @@ export default function CustomerPage() {
 
               <Button
                 type="submit"
-                disabled={!ready}
+                disabled={!ready || loading}
                 className="h-12 w-full rounded-lg bg-[#D97706] text-sm font-semibold uppercase tracking-wide text-white shadow-[0_10px_25px_-5px_rgba(217,119,6,0.3)] transition-all hover:bg-[#B45309] active:scale-[0.99] disabled:cursor-not-allowed disabled:bg-[#E2E8F0] disabled:text-[#94A3B8] disabled:shadow-none"
               >
-                {ready ? "Issue My Concert Pass" : "Complete All Fields to Continue"}
+                {loading ? "Submitting..." : ready ? "Issue My Concert Pass" : "Complete All Fields to Continue"}
               </Button>
               <p className="text-center text-[11px] text-[#64748B]">
                 Your pass is generated instantly and sent to your inbox — skip will-call, walk straight to face scan.
