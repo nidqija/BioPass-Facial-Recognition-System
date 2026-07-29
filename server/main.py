@@ -21,6 +21,9 @@ app.add_middleware(
 
 @app.get("/")
 def get_root():
+
+
+    
     return {"message": "Hello, World!"}
 
 
@@ -76,9 +79,16 @@ def get_events():
     for item in items:
         event = EventDetails(
             eventId=item.get("id", {}).get("S", ""),
-            eventName=item.get("name", {}).get("S", ""),
-            eventDate=item.get("eventDate", {}).get("S", ""),
-            eventLocation=item.get("eventLocation", {}).get("S", "")
+            artist=item.get("artist", {}).get("S", ""),
+            genre=item.get("genre", {}).get("S", ""),
+            venue=item.get("venue", {}).get("S", ""),
+            city=item.get("city", {}).get("S", ""),
+            date=item.get("date", {}).get("S", ""),
+            doorsOpen=item.get("doorsOpen", {}).get("S", ""),
+            price=item.get("price", {}).get("S", ""),
+            tier=item.get("tier", {}).get("S", ""),
+            status=item.get("status", {}).get("S", ""),
+            accentColor=item.get("accentColor", {}).get("S", "")
         )
         events_list.append(event)
 

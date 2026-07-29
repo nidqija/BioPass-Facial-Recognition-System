@@ -1,3 +1,10 @@
+import sys
+from pathlib import Path
+
+# Adds the parent directory ('server') to Python's module search path
+sys.path.append(str(Path(__file__).resolve().parent.parent))
+
+
 from .config.floci_config import dynamodb
 
 
@@ -20,12 +27,10 @@ tables_to_create = [
         "TableName": "events_data",
         "KeySchema": [
             {"AttributeName": "id", "KeyType": "HASH"},
-            {"AttributeName": "event_name", "KeyType": "RANGE"}
         ],
         # Only include attributes used in KeySchema here
         "AttributeDefinitions": [
             {"AttributeName": "id", "AttributeType": "S"},
-            {"AttributeName": "event_name", "AttributeType": "S"}
         ],
         "BillingMode": "PAY_PER_REQUEST"
     }

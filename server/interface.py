@@ -9,7 +9,14 @@ class CustomerRegistration(BaseModel):
 
 class EventDetails(BaseModel):
     eventId: str
-    eventName: str
-    eventDate: str
-    eventLocation: str
+    artist: str
+    genre: str
+    venue: str
+    city: str
+    date: str
+    doorsOpen: str
+    price: str
+    tier: str
+    status: str
+    accentColor: str
     
