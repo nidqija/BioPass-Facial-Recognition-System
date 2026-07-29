@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Navbar from "../reusable_components/Navbar";
 import { Button } from "@/components/ui/button";
 import {
@@ -91,6 +91,26 @@ export default function HomePage(): React.ReactElement {
       concert.venue.toLowerCase().includes(searchQuery.toLowerCase()) ||
       concert.genre.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+
+  useEffect(() =>{
+    const fetchEvents = async () => {
+      try {
+        const response = await fetch("http://127.0.0.1:8000/api/get-events");
+        if (!response.ok) {
+          throw new Error("Failed to fetch events");
+        }
+
+        const data = await response.json();
+        console.log("Fetched events:", data);
+      } catch (error) {
+        console.error("Error fetching events:", error);
+      }
+    };
+
+    fetchEvents();
+  }, []);
+
 
   return (
     <>

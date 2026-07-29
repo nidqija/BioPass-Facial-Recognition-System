@@ -7,3 +7,9 @@ class CustomerRegistration(BaseModel):
 
 
 
+class EventDetails(BaseModel):
+    eventId: str
+    eventName: str
+    eventDate: str
+    eventLocation: str
+    

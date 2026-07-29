@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from interface import CustomerRegistration
+from interface import CustomerRegistration , EventDetails
 from floci_backend.dynamodb_config import dynamodb
 from floci_backend.s3_config import s3
 
@@ -61,6 +61,29 @@ def insert_name(customer: CustomerRegistration):
 
 
     return {"message": f"Name '{customer.fullName}' and payment file '{customer.paymentFile}' inserted successfully."}
+
+
+@app.get("/api/get-events")
+# get method dont need a request body, so we can just return the events from dynamodb with a default parameter
+def get_events():
+
+    
+    # Fetch events from DynamoDB
+    response = dynamodb.scan(TableName="events_data")
+    items = response.get("Items", [])
+
+    events_list = []
+    for item in items:
+        event = EventDetails(
+            eventId=item.get("id", {}).get("S", ""),
+            eventName=item.get("name", {}).get("S", ""),
+            eventDate=item.get("eventDate", {}).get("S", ""),
+            eventLocation=item.get("eventLocation", {}).get("S", "")
+        )
+        events_list.append(event)
+
+    return {"events": events_list}
+    
 
     
 
