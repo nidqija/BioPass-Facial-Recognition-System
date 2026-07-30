@@ -19,4 +19,11 @@ class EventDetails(BaseModel):
     tier: str
     status: str
     accentColor: str
+
+
+class CustomerDetails(BaseModel):
+    customerId: str
+    fullName: str
+    paymentFile: str
+    
     

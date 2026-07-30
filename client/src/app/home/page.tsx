@@ -12,6 +12,7 @@ import {
   Loader2,
 } from "lucide-react";
 import Footer from "../reusable_components/Footer";
+import { Link } from "react-router-dom";
 
 interface Concert {
   id: string;
@@ -59,7 +60,7 @@ export default function HomePage(): React.ReactElement {
           : data.events || data.items || data.Items || [];
 
         const mappedEvents: Concert[] = rawEvents.map((event: any, index: number) => ({
-          id: getValues(event.id, `BP-2607-${index.toString().padStart(4, "0")}`),
+          id: getValues( event.eventId ||event.id, `concert-${index}`),
           artist: getValues(event.artist, "Unknown Artist"),
           genre: getValues(event.genre, "Unknown Genre"),
           venue: getValues(event.venue, "Unknown Venue"),
@@ -76,6 +77,7 @@ export default function HomePage(): React.ReactElement {
         }));
 
         setEvents(mappedEvents);
+        console.log("Fetched events:", mappedEvents);
       } catch (error) {
         console.error("Error fetching events:", error);
       } finally {
@@ -248,13 +250,13 @@ export default function HomePage(): React.ReactElement {
                           <span>Face ID Fast-Pass</span>
                         </div>
 
-                        <a
-                          href={`/customer?eventId=${concert.id}`}
+                        <Link
+                          to={`/customer/${concert.id}`}
                           className="inline-flex items-center h-10 gap-2 rounded-lg bg-[#D97706] px-5 font-mono text-xs font-semibold uppercase tracking-wider text-white shadow-sm transition-all hover:bg-[#B45309] active:scale-[0.98]"
                         >
                           <span>Get Pass</span>
                           <ArrowRight className="h-3.5 w-3.5" />
-                        </a>
+                        </Link>
                       </div>
                     </div>
                   </div>

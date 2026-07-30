@@ -8,7 +8,7 @@ from floci_backend.dynamodb_config import dynamodb
 
 events = [
     {
-        "id": {"S": "BP-2607-0842"},
+        "id": {"S": "BP-2607-0842"}, 
         "artist": {"S": "Midnight Static"},
         "genre": {"S": "Indie / Synthwave"},
         "venue": {"S": "The Grand Hall"},

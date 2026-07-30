@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,12 +12,36 @@ import {
   ShieldCheck,
   ArrowRight,
   Check,
+  Loader2,
 } from "lucide-react";
 import Navbar from "../reusable_components/Navbar";
 import Footer from "../reusable_components/Footer";
+import { useParams } from "react-router-dom";
 
 
 const FASTAPI_URL = import.meta.env.FASTAPI_URL || "http://localhost:8000";
+
+
+// create an interface for the concert data to be fetched from the fastapi backend
+// ensure the data type corresponds to the data type in the fastapi backend
+// unlike javascript, typescript is a strongly typed language and requires the data type to be defined before it can be used
+// this ensures that the data fetched from the backend is of the correct type and prevents runtime errors
+// javascript is a weakly typed language and does not require the data type to be defined before it can be used , causing to have runtime errors if the data type is not as expected
+interface ConcertById{
+      id: string;
+      artist: string;
+      genre: string;
+      venue: string;
+      city: string;
+      date: string;
+      doorsOpen: string;
+      price: string;
+      tier: string;
+      status: "Available" | "Selling Fast" | "Sold Out";
+      accentColor: string;
+}
+
+
 
 
 /**
@@ -155,16 +179,73 @@ function UploadSlot({
 
 
 
-export default function CustomerPage() {
+export default function CustomerPage( ) {
   const [fullName, setFullName] = useState("");
   const [paymentFile, setPaymentFile] = useState<string | null>(null);
   const [faceFile, setFaceFile] = useState<string | null>(null);
+  const [eventsById, setEventsById] = useState<ConcertById[]>([]);
   const [loading, setLoading] = useState(false);
+  const {concertId} = useParams<{ concertId: string }>();
 
-  const ticketNo = "BP-2607-0842";
   const ready = fullName.trim().length > 1 && paymentFile && faceFile;
 
+  // get the first array element of the eventsById state and assign it to a variable called currentConcert
+  const currentConcert = eventsById[0]; 
 
+ 
+
+
+  // use effect to fetch the events by id from the fastapi backend when the component mounts
+  useEffect(() =>{
+    const fetchEventsbyId = async() =>{
+      try {
+          setLoading(true);
+          const response = await fetch(`${FASTAPI_URL}/api/get-event/${concertId}`);
+
+          if (!response.ok) {
+            throw new Error("Failed to fetch events");
+          }
+
+          // getting the response data as json
+          const data = await response.json();
+          
+
+          // if the data has an event property , map it to the concertbyid interface and set it to the state
+          
+          if(data.event){
+            const mappedEvents : ConcertById = {
+              id: data.event.id,
+              artist: data.event.artist,
+              genre: data.event.genre,
+              venue: data.event.venue,
+              city: data.event.city,
+              date: data.event.date,
+              doorsOpen: data.event.doorsOpen,
+              price: data.event.price,
+              tier: data.event.tier,
+              status: data.event.status,
+              accentColor: data.event.accentColor,
+            }
+
+            // set the mapped events to the state to be rendered in the page
+            setEventsById([mappedEvents]);
+            console.log("Fetched events by ID:", mappedEvents);
+
+          }
+
+
+      } catch (error) {
+          console.error("Error fetching events by ID:", error);
+      } finally {
+          setLoading(false);
+      }
+    }
+
+    fetchEventsbyId();
+  },[concertId]);
+
+
+  // handle form submission to be inserted in the database using the fastapi backend
   const handleSubmit = async (e: React.FormEvent) => {
 
 
@@ -172,14 +253,14 @@ export default function CustomerPage() {
     setLoading(true);
 
     const payload = {
-      fullName : fullName,
-      paymentFile : paymentFile ?? ""
+      customerId: `cust_${Date.now()}`, // ✅ Changed concertId to customerId
+      fullName: fullName,
+      paymentFile: `faces/userId/${paymentFile}`, 
     };
+    
 
     try {
-
-
-      const res = await fetch(`${FASTAPI_URL}/api/insert-name`, {
+      const res = await fetch(`${FASTAPI_URL}/api/insert-customer-for-event/${concertId}`, {
          method : "POST",
          headers : {
           'Content-Type' : 'application/json',
@@ -219,27 +300,28 @@ export default function CustomerPage() {
             <ShieldCheck className="h-3.5 w-3.5 text-[#D97706]" />
             Concert Entry Registration
           </span>
-          <span className="font-semibold text-[#334155]">{ticketNo}</span>
+          <span className="font-semibold text-[#334155]">{concertId}</span>
         </div>
 
-        {/* Ticket */}
+       
+      
         <div className="overflow-hidden rounded-2xl border border-[#CBD5E1] bg-white shadow-[0_20px_50px_-15px_rgba(15,23,42,0.08)]">
           {/* Header stub */}
           <div className="border-b border-[#E2E8F0] bg-[#F1F5F9] px-6 py-5">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-lg font-bold tracking-tight text-[#0F172A]">Midnight Static</p>
+                <p className="text-lg font-bold tracking-tight text-[#0F172A]">{currentConcert?.artist || "Midnight Static"}</p>
                 <p className="text-[11px] font-medium text-[#64748B]">Live at The Grand Hall</p>
               </div>
               <div className="text-right font-mono">
                 <p className="text-[10px] uppercase tracking-widest text-[#64748B]">Tier</p>
-                <p className="text-sm font-bold text-[#D97706]">GA</p>
+                <p className="text-sm font-bold text-[#D97706]">{currentConcert?.tier || "GA"}</p>
               </div>
             </div>
             <div className="mt-3 flex items-center gap-4 font-mono text-[11px] text-[#64748B]">
-              <span className="font-medium text-[#334155]">SAT · SEP 12 · 2026</span>
+              <span className="font-medium text-[#334155]">{currentConcert?.date || "SAT · SEP 12 · 2026"}</span>
               <span className="h-1 w-1 rounded-full bg-[#94A3B8]" />
-              <span className="font-medium text-[#334155]">DOORS 7:00 PM</span>
+              <span className="font-medium text-[#334155]">{currentConcert?.doorsOpen || "DOORS 7:00 PM"}</span>
             </div>
           </div>
 
@@ -308,9 +390,9 @@ export default function CustomerPage() {
                   <p className="font-mono text-[10px] uppercase tracking-widest text-[#64748B]">
                     Scan at the door
                   </p>
-                  <Barcode seed={fullName || ticketNo} />
+                  <Barcode seed={fullName || concertId} />
                 </div>
-                <p className="font-mono text-xs font-medium text-[#64748B]">{ticketNo}</p>
+                <p className="font-mono text-xs font-medium text-[#64748B]">{concertId}</p>
               </div>
 
               <Button
@@ -328,6 +410,7 @@ export default function CustomerPage() {
         </div>
       </div>
     </div>
+                  
     <Footer/>
     </>
   );
