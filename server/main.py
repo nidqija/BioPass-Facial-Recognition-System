@@ -139,15 +139,37 @@ def insert_customer_for_event(customer: CustomerDetails, event_id: str):
     # if customer info is completed , insert the customer details into the DynamoDB table for the specific event
     else:
         try:
+
+            faceFile_path = f"faces/{customer.customerId}/{customer.faceFile}"
+
             dynamodb.put_item(
                 TableName="my-bucket-table",
                 Item={
                     "id": {"S": event_id},
                     "name": {"S": customer.fullName},
                     "customerId": {"S": customer.customerId},
-                    "paymentFile": {"S": customer.paymentFile}
+                    "paymentFile": {"S": customer.paymentFile},
+                    "faceFile": {"S": faceFile_path}
                 }
             )
+
+            if dynamodb:
+
+                try:
+                    s3.put_object(
+                        Bucket="my-app-bucket",
+                        Key=faceFile_path,
+                        Body=b"Dummy face file content"
+                    )
+                    print(f"Face file '{customer.faceFile}' uploaded to S3 for customer '{customer.fullName}'.")
+
+                except Exception as e:
+                    print(f"Error occurred while uploading face file to S3: {str(e)}")
+                    return {"message": f"Error occurred while uploading face file to S3: {str(e)}"}
+
+            else:
+                print("Failed to insert customer details into DynamoDB.")
+                return {"message": "Failed to insert customer details into DynamoDB."}
 
             # if successful , print the message to the console for logging and ruturn a success message to the user
             print(f"Customer '{customer.fullName}' inserted successfully for event '{event_id}'.")

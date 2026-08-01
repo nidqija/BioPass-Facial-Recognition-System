@@ -25,5 +25,6 @@ class CustomerDetails(BaseModel):
     customerId: str
     fullName: str
     paymentFile: str
+    faceFile: str
     
     

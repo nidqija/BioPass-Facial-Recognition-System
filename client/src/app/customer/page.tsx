@@ -255,7 +255,8 @@ export default function CustomerPage( ) {
     const payload = {
       customerId: `cust_${Date.now()}`, // ✅ Changed concertId to customerId
       fullName: fullName,
-      paymentFile: `faces/userId/${paymentFile}`, 
+      faceFile: faceFile,
+      paymentFile: paymentFile,
     };
     
 
