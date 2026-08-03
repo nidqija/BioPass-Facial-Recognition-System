@@ -1,8 +1,10 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, File, Form, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from interface import CustomerDetails, CustomerRegistration , EventDetails
 from floci_backend.dynamodb_config import dynamodb
-from floci_backend.s3_config import s3
+from floci_backend.s3_config import BUCKET_NAME, BUCKET_NAME, s3
+from fastapi.responses import StreamingResponse
+from yolo.image_detection_from_floci import load_s3_reference_faces, load_s3_reference_faces, run_live_face_verification
 
 app = FastAPI()
 
@@ -130,54 +132,62 @@ def get_event(event_id: str):
 
 
 @app.post("/api/insert-customer-for-event/{event_id}")
-def insert_customer_for_event(customer: CustomerDetails, event_id: str):
-
-    # check if the customer details are invalid or not provided, if so return a message to the user
-    if not customer.customerId or not customer.fullName or not customer.paymentFile:
+async def insert_customer_for_event(
+    event_id: str,
+    customerId: str = Form(...),
+    fullName: str = Form(...),
+    paymentFile: str = Form(...),
+    faceImage: UploadFile = File(...)  # Match parameter name from React FormData
+):
+    if not customerId or not fullName or not paymentFile:
         return {"message": "Missing required customer details."}
 
-    # if customer info is completed , insert the customer details into the DynamoDB table for the specific event
-    else:
-        try:
+    try:
+        # Read the raw binary image bytes from the file stream
+        image_bytes = await faceImage.read()
+        
+        # Build S3 Path key
+        faceFile_path = f"faces/{customerId}/{faceImage.filename}"
 
-            faceFile_path = f"faces/{customer.customerId}/{customer.faceFile}"
+        # 1. Insert Metadata into DynamoDB
+        dynamodb.put_item(
+            TableName="my-bucket-table",
+            Item={
+                "id": {"S": event_id},
+                "name": {"S": fullName},
+                "customerId": {"S": customerId},
+                "paymentFile": {"S": paymentFile},
+                "faceFile": {"S": faceFile_path}
+            }
+        )
 
-            dynamodb.put_item(
-                TableName="my-bucket-table",
-                Item={
-                    "id": {"S": event_id},
-                    "name": {"S": customer.fullName},
-                    "customerId": {"S": customer.customerId},
-                    "paymentFile": {"S": customer.paymentFile},
-                    "faceFile": {"S": faceFile_path}
-                }
-            )
+        # 2. Upload REAL binary image bytes to S3
+        s3.put_object(
+            Bucket=BUCKET_NAME,
+            Key=faceFile_path,
+            Body=image_bytes,
+            ContentType=faceImage.content_type or "image/jpeg"
+        )
+        print(f"Face file '{faceImage.filename}' uploaded to S3 for customer '{fullName}'.")
 
-            if dynamodb:
+        # 3. Reload DeepFace reference faces in memory
+        load_s3_reference_faces()
 
-                try:
-                    s3.put_object(
-                        Bucket="my-app-bucket",
-                        Key=faceFile_path,
-                        Body=b"Dummy face file content"
-                    )
-                    print(f"Face file '{customer.faceFile}' uploaded to S3 for customer '{customer.fullName}'.")
+        return {"message": f"Customer '{fullName}' inserted successfully for event '{event_id}'."}
 
-                except Exception as e:
-                    print(f"Error occurred while uploading face file to S3: {str(e)}")
-                    return {"message": f"Error occurred while uploading face file to S3: {str(e)}"}
+    except Exception as e:
+        print(f"Error inserting customer: {e}")
+        return {"message": f"Error occurred while inserting customer for event: {str(e)}"}
 
-            else:
-                print("Failed to insert customer details into DynamoDB.")
-                return {"message": "Failed to insert customer details into DynamoDB."}
 
-            # if successful , print the message to the console for logging and ruturn a success message to the user
-            print(f"Customer '{customer.fullName}' inserted successfully for event '{event_id}'.")
-            return {"message": f"Customer '{customer.fullName}' inserted successfully for event '{event_id}'."}
+@app.get("/api/video-verification/{event_id}")
+def video_verification(event_id: str):
+    return StreamingResponse(
+        run_live_face_verification(active_event_id=event_id),
+        media_type="multipart/x-mixed-replace; boundary=frame"
+    )
 
-        # if there is an error while inserting the customer details into the DynamoDB table, return an error message to the user
-        except Exception as e:
-            return {"message": f"Error occurred while inserting customer for event: {str(e)}"}
+
 
     
 

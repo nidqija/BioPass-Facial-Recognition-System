@@ -1,4 +1,5 @@
 from pydantic import BaseModel
+from fastapi import UploadFile, File
 
 
 class CustomerRegistration(BaseModel):
@@ -25,6 +26,6 @@ class CustomerDetails(BaseModel):
     customerId: str
     fullName: str
     paymentFile: str
-    faceFile: str
+    faceImage: UploadFile = File(...)  
     
     

@@ -33,6 +33,18 @@ tables_to_create = [
             {"AttributeName": "id", "AttributeType": "S"},
         ],
         "BillingMode": "PAY_PER_REQUEST"
+    },
+    {
+        "TableName" : "attendance_data",
+        "KeySchema" : [
+            {"AttributeName": "eventId", "KeyType": "HASH"},
+            {"AttributeName": "customerId", "KeyType": "RANGE"}
+        ],
+        "AttributeDefinitions" : [
+            {"AttributeName": "eventId", "AttributeType": "S"},
+            {"AttributeName": "customerId", "AttributeType": "S"}
+        ],
+        "BillingMode": "PAY_PER_REQUEST"
     }
 ]
 
