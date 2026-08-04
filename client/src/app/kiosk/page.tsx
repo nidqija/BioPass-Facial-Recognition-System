@@ -12,10 +12,31 @@ import {
   AlertCircle,
 } from "lucide-react";
 
-let event_id = "BP-2607-0842"
+let event_id = "BP-2607-0843"
+
+// create an interface for the props that will be passed to the KioskPage component
+// this will be parsed by the server and passed to the component as props
+
+interface KioskPageProps{
+  id: string;
+  artist: string;
+  genre: string;
+  venue: string;
+  city: string;
+  date: string;
+  doorsOpen: string;
+  price: string;
+  tier: string;
+  status: "Available" | "Selling Fast" | "Sold Out";
+  accentColor: string;
+}
 
 export default function KioskPage() {
   const STREAM_URL = `http://localhost:8000/api/video-verification/${event_id}`;
+
+  
+
+  
 
   return (
     <>
