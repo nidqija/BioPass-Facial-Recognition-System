@@ -10,48 +10,62 @@ from floci_backend.config.floci_config import BUCKET_NAME
 
 known_faces = {}  
 
-# function to load reference faces from s3 bucket 
-def load_s3_reference_faces():
-    response = s3.list_objects_v2(Bucket=BUCKET_NAME, Prefix="faces/")
-    for obj in response.get("Contents", []):
-     
-     try:
-        key = obj["Key"]
-        
-        if key.lower().endswith((".jpg", ".jpeg", ".png")):
-            key_parts = key.split("/")
+# Function to load reference faces from S3 bucket based on event_id
+def load_s3_reference_faces(active_event_id: str):
+    global known_faces
+    known_faces.clear()
+    
+    try:
+        # Find the corresponding customerid and face file in DynamoDB for active event
+        response = dynamodb.query(
+            TableName="my-bucket-table",
+            KeyConditionExpression="#id = :event_val",
+            ExpressionAttributeNames={"#id": "id"},
+            ExpressionAttributeValues={":event_val": {"S": active_event_id}}
+        )
 
-            if len(key.split("/")) >= 3:
-                customer_id = key_parts[1] 
+        items = response.get("Items", [])
 
-            else:
-                continue  
+        if not items:
+            print(f"No event found in DynamoDB for event_id '{active_event_id}'. Skipping face loading.")
+            return
+
+        for item in items:
+            customer_id = item.get("customerId", {}).get("S", "")
+            face_path = item.get("faceFile", {}).get("S", "")
+
+            if not customer_id or not face_path:
+                print(f"Missing customerId or faceFile for event_id '{active_event_id}'. Skipping this entry.")
+                continue
 
             try: 
-                s3_file = s3.get_object(Bucket=BUCKET_NAME, Key=key)
+                # Download face object directly using face_path key
+                s3_file = s3.get_object(Bucket=BUCKET_NAME, Key=face_path)
                 file_bytes = s3_file["Body"].read() 
+
                 image = Image.open(io.BytesIO(file_bytes)).convert("RGB")
                 rgb_image = np.ascontiguousarray(np.array(image))
+
+                # Store image for comparison
                 known_faces[customer_id] = rgb_image
-                print(f"Loaded reference face for '{customer_id}' from S3 path: s3://{BUCKET_NAME}/{key}")
+                print(f"Loaded reference face for '{customer_id}' from S3 path: s3://{BUCKET_NAME}/{face_path}")
 
+            except s3.exceptions.NoSuchKey:
+                print(f"S3 object key not found for key: {face_path}")
             except Exception as e:
-                print(f"Error processing image for '{customer_id}' from S3 path: s3://{BUCKET_NAME}/{key} - {e}")
+                print(f"Error processing image for '{customer_id}' from S3 path: s3://{BUCKET_NAME}/{face_path} - {e}")
 
-     except Exception as e:
-            print(f"Error loading reference face for '{customer_id}' from S3 path: s3://{BUCKET_NAME}/{key} - {e}")
-
-
+    except Exception as e:
+        print(f"Error loading reference faces for event '{active_event_id}': {e}")
 
 
-
-# function to run live face verification using webcam
+# Function to run live face verification using webcam
 def run_live_face_verification(active_event_id: str):
 
-    load_s3_reference_faces()
+    load_s3_reference_faces(active_event_id)
 
     if not known_faces:
-        print("No reference faces found in S3. Please upload reference images first.")
+        print("No reference faces found in S3 for this event. Please upload reference images first.")
         return
 
     cap = cv2.VideoCapture(0)
@@ -60,14 +74,13 @@ def run_live_face_verification(active_event_id: str):
         print("Error: Could not open webcam.")
         return
 
-    print("Starting live face verification. Press 'q' to quit.")
+    print("Starting live face verification...")
 
     frame_count = 0
     current_status = "Scanning..."
     status_color = (0, 0, 255)  
 
     while True:
-
         ret, frame = cap.read()
 
         if not ret:
@@ -83,22 +96,21 @@ def run_live_face_verification(active_event_id: str):
 
             for person_name, reference_face in known_faces.items():
                 try:
-                    # use deepface to verify the face in the current frame against the reference face
+                    # Verify target frame against the loaded reference face
                     result = DeepFace.verify(
-                        img1_path=rgb_frame, # the first image is the current frame from the webcam
-                        img2_path=reference_face, # the second image is the reference face retrieved from the s3 bucket
-                        model_name="Facenet", # use facenet model for face verification, it is a good balance between accuracy and speed
-                        detector_backend="mtcnn",  # uses MTCNN for face detection, which is robust and accurate
-                        enforce_detection=False, # if no face is detected in the current frame, it will not raise an error and will return a result with "verified": False
+                        img1_path=rgb_frame,
+                        img2_path=reference_face,
+                        model_name="Facenet",
+                        detector_backend="mtcnn",
+                        enforce_detection=False,
                     )
 
-                   
                     if result.get("verified"):
                         match_found = True
                         current_status = f"Match Found: {person_name}"
                         status_color = (0, 255, 0)  # Green (BGR)
 
-
+                        # Write attendance record
                         dynamodb.put_item(
                             TableName="attendance_data",
                             Item={
@@ -111,7 +123,6 @@ def run_live_face_verification(active_event_id: str):
                         print(f"Match found for '{person_name}'. Attendance recorded in DynamoDB for event '{active_event_id}'.")
                         break
 
-
                 except ValueError:
                     current_status = "No Face Detected"
                     status_color = (0, 165, 255)  # Orange
@@ -121,11 +132,9 @@ def run_live_face_verification(active_event_id: str):
                     print(f"Error during verification for '{person_name}' ({type(e).__name__}): {e}")
                     continue
 
-           
             if not match_found and current_status != "No Face Detected":
                 current_status = "No Match Found"
                 status_color = (0, 0, 255)  # Red (BGR)
-
 
         cv2.putText(
             frame,
@@ -142,16 +151,6 @@ def run_live_face_verification(active_event_id: str):
         yield (b'--frame\r\n'
                b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
 
-        # add an event listener to break the loop if the user presses the "q" key
-       # if cv2.waitKey(1) & 0xFF == ord("q"):
-            #break
-
-    # release the webcam and destroy all windows
     cap.release()
-    # cv2.destroyAllWindows()
-
-
-if __name__ == "__main__":
-    run_live_face_verification()
 
 

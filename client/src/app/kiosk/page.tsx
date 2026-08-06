@@ -2,6 +2,8 @@
 
 import { Button } from "@/components/ui/button";
 import Footer from "../reusable_components/Footer";
+import { useEffect } from "react";
+import React from "react";
 import {
   Camera,
   CheckCircle2,
@@ -11,8 +13,9 @@ import {
   UserCheck,
   AlertCircle,
 } from "lucide-react";
+import { useParams } from "react-router-dom";
 
-let event_id = "BP-2607-0843"
+
 
 // create an interface for the props that will be passed to the KioskPage component
 // this will be parsed by the server and passed to the component as props
@@ -31,9 +34,63 @@ interface KioskPageProps{
   accentColor: string;
 }
 
-export default function KioskPage() {
-  const STREAM_URL = `http://localhost:8000/api/video-verification/${event_id}`;
+export default function KioskPage( ) {
+  
+  // useParams is a hook from react-router-dom that allows us to access the parameters in the URL
+  // the url will parse the terminalid to the kiosk page and we will use it to fetch the event data from the backend
+  const { terminalId } = useParams<{ terminalId: string }>();
+  const STREAM_URL = `http://localhost:8000/api/video-verification/${terminalId}`;
+  
+  const [eventData, setEventData] = React.useState<KioskPageProps[]>([]);
 
+
+
+  useEffect(() =>{
+    const fetchEventsData = async() =>{
+      try {
+        const response = await fetch(`http://localhost:8000/api/get-event/${terminalId}`);
+
+
+        if (!terminalId){
+          console.log("Terminal ID is not available. Cannot fetch event data.");
+          return;
+        }
+        if (!response.ok){
+          console.error("Failed to fetch event data:", response.statusText);
+        } 
+
+        const data = await response.json();
+         const rawEvents: any[] = Array.isArray(data)
+         // ensure to parse the data correctly based on the backend response structure 
+         // 
+          ? data : data.event 
+          ? [data.event]
+          : data.event ||  data.events || data.items || data.Items || [];
+
+
+        const mappedEvent: KioskPageProps[] = rawEvents.map((event: any , index: number) => ({
+          id : event.id || event.eventId || `event-${index}`,
+          artist : event.artist || event.performer || "Unknown Artist",
+          genre : event.genre || event.category || "Unknown Genre",
+          venue : event.venue || event.location || "Unknown Venue",
+          city : event.city || "Unknown City",
+          date : event.date || "Unknown Date",
+          doorsOpen : event.doorsOpen || "Unknown Doors Open Time",
+          price : event.price || "Unknown Price",
+          tier : event.tier || "Unknown Tier",
+          status : event.status || "Available",
+          accentColor : event.accentColor || "#D97706"
+        }))
+
+
+        setEventData(mappedEvent);
+      } catch (error) {
+        console.error("Error fetching event data:", error);
+      }
+    }
+
+    fetchEventsData();
+  },[]);
   
 
   
@@ -48,15 +105,18 @@ export default function KioskPage() {
               <ShieldCheck className="h-6 w-6" />
             </div>
             <div>
-              <h1 className="p-2 font-bold tracking-tight text-emerald-400 font-serif">
-                Express Entry Kiosk
-              </h1>
-              <p className="text-xs font-medium text-[#64748B]">
-                Midnight Static • Grand Hall
-              </p>
-            </div>
+              {eventData.map((event) => (
+                <div key={event.id}>
+                  <h1 className="p-2 font-bold tracking-tight text-emerald-400 font-serif">
+                    {event.artist}
+                  </h1>
+                  <p className="text-xs font-medium text-[#64748B]">
+                    {event.venue} • {event.city}
+                  </p>
+                </div>
+              ))}
           </div>
-
+        </div>
           <div className="flex items-center gap-2 rounded-full border border-emerald-600/30 bg-emerald-50 px-3 py-1 font-mono text-xs font-semibold uppercase tracking-wider text-emerald-700">
             <span className="h-2 w-2 rounded-full bg-emerald-600 animate-pulse" />
             Scanner Active
@@ -162,5 +222,6 @@ export default function KioskPage() {
       </div>
       <Footer />
     </>
+    
   );
 }

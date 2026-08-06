@@ -128,6 +128,7 @@ def get_event(event_id: str):
         accentColor=item.get("accentColor", {}).get("S", "")
     )
 
+    # in client side , it is read as eventData.event.artist, eventData.event.venue, etc. so we need to return it as event
     return {"event": event}
 
 
