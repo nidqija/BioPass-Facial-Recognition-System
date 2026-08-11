@@ -1,9 +1,10 @@
+import asyncio
 import io
 import cv2
 import numpy as np
 from PIL import Image
 from deepface import DeepFace
-
+from server_side_events.sse_events import event_queue
 from floci_backend.s3_config import s3
 from floci_backend.dynamodb_config import dynamodb
 from floci_backend.config.floci_config import BUCKET_NAME
@@ -24,12 +25,16 @@ def load_s3_reference_faces(active_event_id: str):
             ExpressionAttributeValues={":event_val": {"S": active_event_id}}
         )
 
+        # get the items from the response
+        # response is in form of a dictionary with key "Items" which contains a list of items from the db data
         items = response.get("Items", [])
 
+        # if there are no items received from the response , log a notice message and return
         if not items:
             print(f"No event found in DynamoDB for event_id '{active_event_id}'. Skipping face loading.")
             return
 
+        # iterate through the items and get the customer id and face_path for each item 
         for item in items:
             customer_id = item.get("customerId", {}).get("S", "")
             face_path = item.get("faceFile", {}).get("S", "")
@@ -39,20 +44,26 @@ def load_s3_reference_faces(active_event_id: str):
                 continue
 
             try: 
-                # Download face object directly using face_path key
+                # get the image from s3 bucket using face_path retrieved 
                 s3_file = s3.get_object(Bucket=BUCKET_NAME, Key=face_path)
+
+                # read the file bytes from the s3 object and convert it to a numpy array for face comparison
                 file_bytes = s3_file["Body"].read() 
 
+                # convert the image bytes to a numpy array and then to RGB format for face comparison
                 image = Image.open(io.BytesIO(file_bytes)).convert("RGB")
                 rgb_image = np.ascontiguousarray(np.array(image))
 
-                # Store image for comparison
+                # store the reference face in the known faces dictionary with customer_id as key and the rgb_image as value
                 known_faces[customer_id] = rgb_image
                 print(f"Loaded reference face for '{customer_id}' from S3 path: s3://{BUCKET_NAME}/{face_path}")
 
             except s3.exceptions.NoSuchKey:
+                # if face file is not found in the s3 bucket , log a notice message and continue to next item
                 print(f"S3 object key not found for key: {face_path}")
             except Exception as e:
+
+                # if any other error occurs while processing the image from s3 bucket , log the error message and continue to next item     
                 print(f"Error processing image for '{customer_id}' from S3 path: s3://{BUCKET_NAME}/{face_path} - {e}")
 
     except Exception as e:
@@ -120,7 +131,22 @@ def run_live_face_verification(active_event_id: str):
                             }
                         )
 
+                        event_payload = {
+                            "type": "USER_VERIFIED",
+                            "eventId": active_event_id,
+                            "customerId": person_name,
+                            "status" : "Verified",
+                        }
+
+                        # call for event notifier to send the event payload to the client
+                        loop = asyncio.get_event_loop()
+
+                        # use call_soon_threadsafe to ensure that the event is put into the queue in a thread-safe manner
+                        # avoiding potential issues like deadlocks or race conditions
+                        loop.call_soon_threadsafe(event_queue.put_nowait, event_payload)
+
                         print(f"Match found for '{person_name}'. Attendance recorded in DynamoDB for event '{active_event_id}'.")
+                        print(f"[Event Notifier] Event payload sent: {event_payload}")
                         break
 
                 except ValueError:

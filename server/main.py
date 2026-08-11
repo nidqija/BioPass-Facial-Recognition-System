@@ -1,11 +1,12 @@
 from fastapi import FastAPI, File, Form, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
+import json
 from interface import CustomerDetails, CustomerRegistration , EventDetails
 from floci_backend.dynamodb_config import dynamodb
 from floci_backend.s3_config import BUCKET_NAME, BUCKET_NAME, s3
 from fastapi.responses import StreamingResponse
 from yolo.image_detection_from_floci import load_s3_reference_faces, load_s3_reference_faces, run_live_face_verification
-
+import asyncio
 app = FastAPI()
 
 
@@ -18,6 +19,20 @@ app.add_middleware(
     allow_headers=["*"],  # Allow all headers
 )
 
+
+# init the event queue for the video verification notifier
+# only applies from server to client
+event_queue = asyncio.Queue()
+
+
+# async function to handle event notifier
+# we use async to enable concurrent handling of multiple clients and events
+async def event_notifier():
+
+    # while true , await for any incoming events from the event queue and yield them to the client
+    while True:
+        event_data = await event_queue.get()
+        yield f"data: {json.dumps(event_data)}\n\n"
 
 
 
