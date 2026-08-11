@@ -19,7 +19,7 @@ export default function Navbar() {
                 Live
               </span>
             </div>
-            <p className="text-xs font-medium text-[#64748B]">
+            <p className="text-xs font-semibold text-[#475569]">
                 Powered by BioPass
             </p>
           </div>
@@ -27,7 +27,7 @@ export default function Navbar() {
 
         {/* Live Status / Badge */}
         <div className="flex items-center gap-3">
-          <div className="hidden items-center gap-2 rounded-full border border-[#E2E8F0] bg-[#F8FAFC] px-3 py-1 font-mono text-[11px] font-medium text-[#475569] sm:flex">
+          <div className="hidden items-center gap-2 rounded-full border border-[#CBD5E1] bg-[#F8FAFC] px-3 py-1 font-mono text-[11px] font-semibold text-[#334155] sm:flex">
             <ShieldCheck className="h-3.5 w-3.5 text-[#059669]" />
             <span>Fast-Track Entry Ready</span>
           </div>

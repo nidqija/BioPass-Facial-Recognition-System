@@ -1,17 +1,30 @@
 from .config.floci_config import s3
 
-# create an s3 bucket to upload the file
-s3.create_bucket(Bucket="my-app-bucket")
+BUCKET_NAME = "my-app-bucket"
 
-# put an object in the bucket , in this example , it is a text file with the content "Hello, World!"
-s3.put_object(
-    Bucket="my-app-bucket", Key="test.txt", Body="Hello, World!"
-    )
+def remove_dummy_files_from_s3():
+    # List all objects under the "faces/" directory in S3
+    response = s3.list_objects_v2(Bucket=BUCKET_NAME, Prefix="faces/")
 
-# init the response from the bucket my-app-bucket
-response = s3.list_objects_v2(Bucket="my-app-bucket")
+    objects_to_delete = []
 
-# for each object in the response , print the key of the object
-for obj in response.get("Contents", []):
-    print("The key is:", obj["Key"])
+    for obj in response.get("Contents", []):
+        key = obj["Key"]
 
+        # Filter out text files, dummy files, or specific non-image keys
+        if key.endswith(".txt") or "dummy" in key.lower():
+            objects_to_delete.append({"Key": key})
+            print(f"Marked for deletion: {key}")
+
+    # Delete the marked dummy objects in batch
+    if objects_to_delete:
+        s3.delete_objects(
+            Bucket=BUCKET_NAME,
+            Delete={"Objects": objects_to_delete}
+        )
+        print(f"\nSuccessfully deleted {len(objects_to_delete)} dummy file(s).")
+    else:
+        print("No dummy files found to delete.")
+
+if __name__ == "__main__":
+    remove_dummy_files_from_s3()
