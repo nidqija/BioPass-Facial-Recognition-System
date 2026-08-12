@@ -25,6 +25,7 @@ def load_s3_reference_faces(active_event_id: str):
             ExpressionAttributeValues={":event_val": {"S": active_event_id}}
         )
 
+
         # get the items from the response
         # response is in form of a dictionary with key "Items" which contains a list of items from the db data
         items = response.get("Items", [])

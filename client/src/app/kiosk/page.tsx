@@ -14,6 +14,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { useParams } from "react-router-dom";
+import VerificationNotifier from "./verification-notifier";
 
 
 
@@ -33,6 +34,10 @@ interface KioskPageProps{
   status: "Available" | "Selling Fast" | "Sold Out";
   accentColor: string;
 }
+
+
+
+
 
 export default function KioskPage( ) {
   
@@ -97,6 +102,7 @@ export default function KioskPage( ) {
 
   return (
     <>
+    <VerificationNotifier activeEventId={terminalId} />
       <div className="flex min-h-screen flex-col bg-[#F8FAFC] font-sans antialiased text-[#010101]">
         {/* Top Bar */}
         <header className="flex items-center justify-between border-b border-[#E2E8F0] bg-white/80 px-6 py-4 backdrop-blur-md sm:px-8 shadow-xs">
