@@ -26,6 +26,7 @@ def hash_code(code: str) -> str:
     return hashlib.sha256(code.encode()).hexdigest()
 
 
+# function to send the otp code to the user's email address using smtplib on port 1025
 def send_otp_email(to_email: str, otp_code:str):
     msg = EmailMessage()
     msg.set_content(f"Your OTP code is: {otp_code}")
@@ -33,7 +34,7 @@ def send_otp_email(to_email: str, otp_code:str):
     msg['From'] = 'biopass@mailpit.com'
     msg['To'] = to_email
 
-    with smtplib.SMTP('localhost') as server:
+    with smtplib.SMTP('localhost' , 1025) as server:
         server.send_message(msg)
 
 

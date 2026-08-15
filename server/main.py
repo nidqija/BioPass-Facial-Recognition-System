@@ -1,13 +1,26 @@
-from fastapi import FastAPI, File, Form, UploadFile
+from datetime import datetime, timedelta, timezone
+import secrets
+
+from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 import json
+
+from jwt.exceptions import PyJWTError
+import jwt
+from typing import Dict
 from interface import CustomerDetails, CustomerRegistration , EventDetails
+from mailpit.login_request import LoginRequest, VerifyOTPRequest, hash_code, send_otp_email
 from floci_backend.dynamodb_config import dynamodb
 from floci_backend.s3_config import BUCKET_NAME, BUCKET_NAME, s3
 from fastapi.responses import StreamingResponse
 from yolo.image_detection_from_floci import load_s3_reference_faces, load_s3_reference_faces, run_live_face_verification
 import asyncio
+import uuid
+
 app = FastAPI()
+
+SMTP_SERVER = "localhost"
+SMTP_PORT = 8025  # Default port for Mailpit
 
 
 
@@ -18,6 +31,9 @@ app.add_middleware(
     allow_methods=["*"],  # Allow all methods
     allow_headers=["*"],  # Allow all headers
 )
+
+otp_storage: Dict[str, dict] = {}
+
 
 
 # init the event queue for the video verification notifier
@@ -202,6 +218,115 @@ def video_verification(event_id: str):
         run_live_face_verification(active_event_id=event_id),
         media_type="multipart/x-mixed-replace; boundary=frame"
     )
+
+
+# api endpoint for login request from client 
+# this function will return a pre_auth_token and send an otp code to the user's email for verification
+# check for matching params , then generate uuid , pre auth token and otp code to send to user email
+@app.post("/api/auth/login")
+async def login(login_request: LoginRequest):
+
+    if login_request.email == "admin@gmail.com" and login_request.password == "admin123":
+        user_id = uuid.uuid4().hex  # Generate a unique user ID
+    
+
+        otp = str(secrets.randbelow(900000) + 100000)  # Generate a 6-digit OTP
+
+
+        otp_storage[user_id] = {
+            "hash_otp" : hash_code(otp),
+            "expires_at" : datetime.now(timezone.utc) + timedelta(minutes=5),
+            "attempts" : 0
+
+        }
+
+        send_otp_email(login_request.email, otp)
+
+        pre_auth_token = jwt.encode(
+            {
+                "sub": user_id, 
+                "mfa_pending": True,
+                "exp": datetime.now(timezone.utc) + timedelta(minutes=5)
+                },
+
+
+            "your_secret_key",
+            algorithm="HS256"
+        )
+
+        return {
+            "requires_mfa": True,
+            "pre_auth_token": pre_auth_token,
+            "message" : "OTP sent to your email. Please verify within 5 minutes."
+        }
+
+
+# function to verify otp code sent to user email and pre_auth_token from client
+# it is sent through email and stored in memory for 5 minutes, 
+# then it is deleted from memory after successful verification or expiration
+@app.post("/api/auth/verify-otp")
+async def verify_otp(verify_request: VerifyOTPRequest):
+
+    try:
+        # jwt function to decode the pre_auth_token from the client and check if it is valid and not expired
+        payload = jwt.decode(
+            verify_request.pre_auth_token, 
+            "your_secret_key" , 
+            algorithms=["HS256"]
+            )
+
+        # check if the pre auth token has mfa_pending set to true, if not then raise an error
+        # we need it to be pending so the system can verify the otp code sent to the user email
+        if not payload.get("mfa_pending"):
+            raise HTTPException(status_code=400, detail="MFA not pending for this token.")
+
+        # get the user id from the payload of the pre_auth_token to check if it exists in the otp_storage dictionary
+        user_id = payload.get("sub")
+
+    except PyJWTError:
+        return {"message": "Invalid or expired pre-auth token."}  
+
+
+    # get the record from the otp_storage dictionary using the user_id as the key
+    record = otp_storage.get(user_id)
+
+    # if the record does not exist or the record has expired , return an error message
+    if not record or datetime.now(timezone.utc) > record["expires_at"]:
+        return {"message": "OTP expired or not found. Please request a new OTP."}
+
+
+    # if user has exceeded the maximum number of attempts (3), remove the record from otp_storage and return an error message
+    if record["attempts"] >= 3:
+        otp_storage.pop(user_id, None)  # Remove the record after 3 failed attempts
+        raise HTTPException(status_code=400, detail="Maximum OTP attempts exceeded. Please request a new OTP.")
+
+
+    if hash_code(verify_request.otp_token) != record["hash_otp"]:
+        record["attempts"] += 1
+        remaining = 3 - record["attempts"]
+        return {"message": f"Invalid OTP. You have {remaining} attempts left."}
+
+    otp_storage.pop(user_id, None)  # Remove the record after successful verification
+
+    admin_success_token = jwt.encode(
+        {
+            "sub": user_id, 
+            "exp": datetime.now(timezone.utc) + timedelta(minutes=5)
+
+            },
+        "your_secret_key",
+        algorithm="HS256"
+    )
+
+    return {
+        "access_token": admin_success_token,
+        "token_type": "bearer",
+        "message": "OTP verified successfully. You are now logged in."
+    }
+            
+
+
+
 
 
 

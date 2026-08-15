@@ -45,6 +45,17 @@ tables_to_create = [
             {"AttributeName": "customerId", "AttributeType": "S"}
         ],
         "BillingMode": "PAY_PER_REQUEST"
+    },
+    {
+        "TableName" : "admin_data",
+        "KeySchema" : [
+
+            {"AttributeName": "adminId", "KeyType": "HASH"},
+        ],
+        "AttributeDefinitions" : [
+            {"AttributeName": "adminId", "AttributeType": "S"}
+        ],
+        "BillingMode": "PAY_PER_REQUEST"
     }
 ]
 
