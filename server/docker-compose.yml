@@ -27,3 +27,11 @@ services:
       - AWS_SECRET_ACCESS_KEY=floci
     depends_on:
       - floci
+
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: dev-mailpit
+    ports:
+      - "1025:1025" # SMTP
+      - "8025:8025" # Web UI
+    restart: unless-stopped

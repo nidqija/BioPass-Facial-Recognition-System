@@ -187,7 +187,7 @@ async def insert_customer_for_event(
         print(f"Face file '{faceImage.filename}' uploaded to S3 for customer '{fullName}'.")
 
         # 3. Reload DeepFace reference faces in memory
-        load_s3_reference_faces()
+        load_s3_reference_faces(event_id)
 
         return {"message": f"Customer '{fullName}' inserted successfully for event '{event_id}'."}
 
