@@ -36,6 +36,9 @@ export default function Navbar() {
             <Sparkles className="h-3.5 w-3.5 text-[#D97706]" />
             <span>GA PASS</span>
           </div>
+            <div className="flex items-center gap-1.5 rounded-lg border border-[#CBD5E1] bg-[#F1F5F9] px-2.5 py-1 font-mono text-xs font-semibold text-[#0F172A]">
+            <a href="/admin/auth-page">Admin Sign In</a>
+          </div>
         </div>
 
       </div>
