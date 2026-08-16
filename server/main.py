@@ -20,7 +20,7 @@ import uuid
 app = FastAPI()
 
 SMTP_SERVER = "localhost"
-SMTP_PORT = 8025  # Default port for Mailpit
+SMTP_PORT = 8025 
 
 
 
@@ -240,6 +240,7 @@ async def login(login_request: LoginRequest):
 
         }
 
+        # send the otp code to the user's email using the send_otp_email function from mailpit/login_request.py
         send_otp_email(login_request.email, otp)
 
         pre_auth_token = jwt.encode(
@@ -318,11 +319,51 @@ async def verify_otp(verify_request: VerifyOTPRequest):
         algorithm="HS256"
     )
 
+    print(f"OTP verified successfully, OTP code for {user_id}, Admin is now logged in.")
     return {
         "access_token": admin_success_token,
         "token_type": "bearer",
         "message": "OTP verified successfully. You are now logged in."
     }
+
+# fetch events for admin panel 
+@app.get("/api/admin/events-list")
+async def fetch_events_for_admin():
+    try:
+
+
+        response = dynamodb.scan(TableName="events_data")
+        items = response.get("Items", [])
+
+        events_list = []
+        for item in items:
+            event = EventDetails(
+                eventId=item.get("id", {}).get("S", ""),
+                artist=item.get("artist", {}).get("S", ""),
+                genre=item.get("genre", {}).get("S", ""),
+                venue=item.get("venue", {}).get("S", ""),
+                city=item.get("city", {}).get("S", ""),
+                date=item.get("date", {}).get("S", ""),
+                doorsOpen=item.get("doorsOpen", {}).get("S", ""),
+                price=item.get("price", {}).get("S", ""),
+                tier=item.get("tier", {}).get("S", ""),
+                status=item.get("status", {}).get("S", ""),
+                accentColor=item.get("accentColor", {}).get("S", "")
+            )
+            events_list.append(event)
+
+        print("Fetched events from DynamoDB:", events_list)
+
+        return {"events": events_list}
+
+
+
+    except Exception as e:
+        print(f"Error fetching events for admin: {e}")
+        return {"message": f"Error occurred while fetching events for admin: {str(e)}"}
+
+    
+
             
 
 
