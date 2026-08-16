@@ -13,6 +13,9 @@ import {
   RefreshCw,
   AlertTriangle,
   Download,
+  Calendar,
+  BarChart3,
+  ListFilter,
 } from "lucide-react";
 
 interface VerificationLog {
@@ -27,6 +30,7 @@ interface VerificationLog {
 }
 
 export default function DashboardPage() {
+  const [activeTab, setActiveTab] = useState<"logs" | "events" | "attendance">("logs");
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [logs] = useState<VerificationLog[]>([
@@ -96,6 +100,57 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 font-sans">
       <Navbar />
+
+      {/* Mini Action Sub-Navbar */}
+      <nav aria-label="Admin Sub Navigation" className="border-b border-slate-800/80 bg-slate-900/40 backdrop-blur-md sticky top-0 z-20">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-12">
+            <div className="flex items-center space-x-1 sm:space-x-2">
+              <button
+                type="button"
+                onClick={() => setActiveTab("logs")}
+                className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-all cursor-pointer ${
+                  activeTab === "logs"
+                    ? "bg-slate-800 text-amber-400 border border-slate-700 shadow-sm"
+                    : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/50"
+                }`}
+              >
+                <ListFilter className="w-4 h-4" />
+                Live Feed
+              </button>
+
+              <a href="/admin/manage-events"
+               className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-all cursor-pointer ${
+                  activeTab ==="events"
+                    ? "bg-slate-800 text-amber-400 border border-slate-700 shadow-sm"
+                    : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/50"
+                }`}
+              >
+                <Calendar className="w-4 h-4" />
+                Manage Events
+              </a>
+
+              < a href="/admin/attendance"
+                type="button"
+                onClick={() => setActiveTab("attendance")}
+                className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-all cursor-pointer ${
+                  activeTab === "attendance"
+                    ? "bg-slate-800 text-amber-400 border border-slate-700 shadow-sm"
+                    : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/50"
+                }`}
+              >
+                <BarChart3 className="w-4 h-4" />
+                View Attendance Metrics
+              </a>
+            </div>
+
+            <div className="hidden md:flex items-center gap-2 text-xs text-slate-400">
+              <span className="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+              Admin Mode Active
+            </div>
+          </div>
+        </div>
+      </nav>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
         {/* Header Title Section */}
