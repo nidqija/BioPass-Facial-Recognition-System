@@ -243,13 +243,13 @@ export default function ManageEventsPage() {
                   </div>
 
                   <h2 className="text-lg font-bold text-white mb-3 line-clamp-1">
-                    {evt.city} - {evt.artist} ({evt.genre})
+                   {evt.artist} ({evt.genre})
                   </h2>
 
                   <div className="space-y-2 text-xs text-slate-400">
                     <div className="flex items-center gap-2">
                       <MapPin className="w-3.5 h-3.5 text-slate-500 shrink-0" />
-                      <span className="truncate">{evt.venue}</span>
+                      <span className="truncate">{evt.venue} -  {evt.city} </span>
                     </div>
                     <div className="flex items-center gap-2">
                       <Clock className="w-3.5 h-3.5 text-slate-500 shrink-0" />
@@ -259,7 +259,7 @@ export default function ManageEventsPage() {
                     </div>
                     <div className="flex items-center gap-2">
                       <Users className="w-3.5 h-3.5 text-slate-500 shrink-0" />
-                      <span>{evt.price.toLocaleString()} Tickets Available</span>
+                      <span>{evt.price.toLocaleString()} Tickets per Person</span>
                     </div>
                   </div>
                 </div>
@@ -320,9 +320,9 @@ export default function ManageEventsPage() {
                   type="text"
                   required
                   placeholder="e.g. Cyber Summit 2026"
-                  value={formData.accentColor}
+                  value={formData.artist}
                   onChange={(e) =>
-                    setFormData({ ...formData, accentColor: e.target.value })
+                    setFormData({ ...formData, artist: e.target.value })
                   }
                   className="w-full bg-slate-950 border border-slate-800 text-slate-100 text-sm rounded-lg px-3 py-2 focus:outline-none focus:border-amber-500 transition"
                 />
@@ -344,13 +344,13 @@ export default function ManageEventsPage() {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid  gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-slate-300 mb-1">
                     Date
                   </label>
                   <input
-                    type="date"
+                    type="text"
                     required
                     value={formData.date}
                     onChange={(e) =>
@@ -359,36 +359,23 @@ export default function ManageEventsPage() {
                     className="w-full bg-slate-950 border border-slate-800 text-slate-100 text-sm rounded-lg px-3 py-2 focus:outline-none focus:border-amber-500 transition"
                   />
                 </div>
-                <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">
-                    Time
-                  </label>
-                  <input
-                    type="time"
-                    required
-                    value={formData.doorsOpen}
-                    onChange={(e) =>
-                      setFormData({ ...formData, doorsOpen: e.target.value })
-                    }
-                    className="w-full bg-slate-950 border border-slate-800 text-slate-100 text-sm rounded-lg px-3 py-2 focus:outline-none focus:border-amber-500 transition"
-                  />
-                </div>
+                
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-slate-300 mb-1">
-                    Capacity
+                    Ticket Price
                   </label>
                   <input
-                    type="number"
+                    type="text"
                     min="1"
                     required
-                    value={formData.accentColor}
+                    value={formData.price}
                     onChange={(e) =>
                       setFormData({
                         ...formData,
-                        accentColor: e.target.value,
+                        price: e.target.value,
                       })
                     }
                     className="w-full bg-slate-950 border border-slate-800 text-slate-100 text-sm rounded-lg px-3 py-2 focus:outline-none focus:border-amber-500 transition"
@@ -408,10 +395,8 @@ export default function ManageEventsPage() {
                     }
                     className="w-full bg-slate-950 border border-slate-800 text-slate-100 text-sm rounded-lg px-3 py-2 focus:outline-none focus:border-amber-500 transition"
                   >
-                    <option value="Upcoming">Upcoming</option>
-                    <option value="Active">Active</option>
-                    <option value="Completed">Completed</option>
-                    <option value="Draft">Draft</option>
+                    <option value="Upcoming">Selling Fast</option>
+                    <option value="Active">Available</option>
                   </select>
                 </div>
               </div>
