@@ -21,9 +21,9 @@ function App() {
           <Route path="/customer/:concertId" element={<CustomerPage />}  />
           <Route path="/kiosk/:terminalId" element={<KioskPage />} />
           <Route path="/kiosk-collector" element={<KioskCollector />} />
-          <Route path='admin/dashboard' element={<DashboardPage/>}/>
-          <Route path='admin/auth-page' element={<AuthPage/>}/>
-          <Route path='admin/manage-events' element={<ManageEventsPage/>}/>
+          <Route path="/admin/dashboard" element={<DashboardPage/>}/>
+          <Route path="/admin/auth-page" element={<AuthPage/>}/>
+          <Route path="/admin/manage-events" element={<ManageEventsPage/>}/>
           <Route path='*' element={<h1>404 Not Found</h1>}/>
         </Routes>
      </BrowserRouter>

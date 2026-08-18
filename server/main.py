@@ -1,17 +1,22 @@
 from datetime import datetime, timedelta, timezone
 import secrets
 
+# pyrefly: ignore [missing-import]
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
+# pyrefly: ignore [missing-import]
 from fastapi.middleware.cors import CORSMiddleware
 import json
 
+# pyrefly: ignore [missing-import]
 from jwt.exceptions import PyJWTError
+# pyrefly: ignore [missing-import]
 import jwt
 from typing import Dict
 from interface import CustomerDetails, CustomerRegistration , EventDetails
 from mailpit.login_request import LoginRequest, VerifyOTPRequest, hash_code, send_otp_email
 from floci_backend.dynamodb_config import dynamodb
 from floci_backend.s3_config import BUCKET_NAME, BUCKET_NAME, s3
+# pyrefly: ignore [missing-import]
 from fastapi.responses import StreamingResponse
 from yolo.image_detection_from_floci import load_s3_reference_faces, load_s3_reference_faces, run_live_face_verification
 import asyncio
@@ -26,10 +31,10 @@ SMTP_PORT = 8025
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],  # Allow all origins
+    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173", "http://localhost:3000"],
     allow_credentials=True,
-    allow_methods=["*"],  # Allow all methods
-    allow_headers=["*"],  # Allow all headers
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 otp_storage: Dict[str, dict] = {}
@@ -330,82 +335,119 @@ async def verify_otp(verify_request: VerifyOTPRequest):
 @app.get("/api/admin/events-list")
 async def fetch_events_for_admin():
     try:
-
-
         response = dynamodb.scan(TableName="events_data")
         items = response.get("Items", [])
 
         events_list = []
         for item in items:
+            event_id_val = item.get("id", {}).get("S", "") or item.get("eventId", {}).get("S", "")
+            if not event_id_val:
+                continue
             event = EventDetails(
-                eventId=item.get("id", {}).get("S", ""),
-                artist=item.get("artist", {}).get("S", ""),
-                genre=item.get("genre", {}).get("S", ""),
-                venue=item.get("venue", {}).get("S", ""),
-                city=item.get("city", {}).get("S", ""),
-                date=item.get("date", {}).get("S", ""),
-                doorsOpen=item.get("doorsOpen", {}).get("S", ""),
-                price=item.get("price", {}).get("S", ""),
-                tier=item.get("tier", {}).get("S", ""),
-                status=item.get("status", {}).get("S", ""),
-                accentColor=item.get("accentColor", {}).get("S", "")
+                eventId=event_id_val,
+                artist=item.get("artist", {}).get("S", "") or "Unknown Artist",
+                genre=item.get("genre", {}).get("S", "") or "General",
+                venue=item.get("venue", {}).get("S", "") or "TBA",
+                city=item.get("city", {}).get("S", "") or "TBA",
+                date=item.get("date", {}).get("S", "") or "TBA",
+                doorsOpen=item.get("doorsOpen", {}).get("S", "") or "7:00 PM",
+                price=item.get("price", {}).get("S", "") or "$0.00",
+                tier=item.get("tier", {}).get("S", "") or "General Admission",
+                status=item.get("status", {}).get("S", "") or "Available",
+                accentColor=item.get("accentColor", {}).get("S", "") or "#D97706"
             )
             events_list.append(event)
 
         print("Fetched events from DynamoDB:", events_list)
-
         return {"events": events_list}
-
-
 
     except Exception as e:
         print(f"Error fetching events for admin: {e}")
         return {"message": f"Error occurred while fetching events for admin: {str(e)}"}
 
+
 # post method to add new event to dynamodb for admin panel
 @app.post("/api/admin/add-event")
-async def add_event(event:EventDetails):
+async def add_event(event: EventDetails):
     try:
-        
+        event_id = str(event.eventId or f"BP-{uuid.uuid4().hex[:8].upper()}")
+        item = {
+            "id": {"S": event_id},
+            "eventId": {"S": event_id},
+            "artist": {"S": str(event.artist or "Unknown Artist")},
+            "genre": {"S": str(event.genre or "General")},
+            "venue": {"S": str(event.venue or "TBA")},
+            "city": {"S": str(event.city or "TBA")},
+            "date": {"S": str(event.date or "TBA")},
+            "doorsOpen": {"S": str(event.doorsOpen or "7:00 PM")},
+            "price": {"S": str(event.price or "$0.00")},
+            "tier": {"S": str(event.tier or "General Admission")},
+            "status": {"S": str(event.status or "Available")},
+            "accentColor": {"S": str(event.accentColor or "#D97706")},
+        }
+
         dynamodb.put_item(
             TableName="events_data",
-            Item={
-                "id": {"S": event.eventId},
-                "artist": {"S": event.artist},
-                "genre": {"S": event.genre},
-                "venue": {"S": event.venue},
-                "city": {"S": event.city},
-                "date": {"S": event.date},
-                "doorsOpen": {"S": event.doorsOpen},
-                "price": {"S": event.price},
-                "tier": {"S": event.tier},
-                "status": {"S": event.status},
-                "accentColor": {"S": event.accentColor}
-            }
+            Item=item
         )
 
         print(f"Event '{event.artist}' added successfully to DynamoDB.")
-        return {"message": f"Event '{event.artist}' added successfully."}
-
-        
+        return {"message": f"Event '{event.artist}' added successfully.", "eventId": event_id}
 
     except Exception as e:
         print(f"Error adding event: {e}")
-        return {"message": f"Error occurred while adding event: {str(e)}"}
+        raise HTTPException(status_code=500, detail=f"Error occurred while adding event: {str(e)}")
 
 
+# put method to update an existing event in dynamodb
+@app.put("/api/admin/update-event")
+async def update_event(event: EventDetails):
+    try:
+        event_id = str(event.eventId or "").strip()
+        if not event_id:
+            raise HTTPException(status_code=400, detail="Missing required eventId for update.")
+
+        accent_color = str(event.accentColor or "#D97706").strip() or "#D97706"
+        dynamodb.put_item(
+            TableName="events_data",
+            Item={
+                "id": {"S": event_id},
+                "eventId": {"S": event_id},
+                "artist": {"S": str(event.artist or "Unknown Artist").strip() or "Unknown Artist"},
+                "genre": {"S": str(event.genre or "General").strip() or "General"},
+                "venue": {"S": str(event.venue or "TBA").strip() or "TBA"},
+                "city": {"S": str(event.city or "TBA").strip() or "TBA"},
+                "date": {"S": str(event.date or "TBA").strip() or "TBA"},
+                "doorsOpen": {"S": str(event.doorsOpen or "7:00 PM").strip() or "7:00 PM"},
+                "price": {"S": str(event.price or "$0.00").strip() or "$0.00"},
+                "tier": {"S": str(event.tier or "General Admission").strip() or "General Admission"},
+                "status": {"S": str(event.status or "Available").strip() or "Available"},
+                "accentColor": {"S": accent_color}
+            }
+        )
+
+        print(f"Event '{event_id}' updated successfully in DynamoDB.")
+        return {"message": f"Event '{event_id}' updated successfully."}
+
+    except Exception as e:
+        print(f"Error updating event: {e}")
+        raise HTTPException(status_code=500, detail=f"Error occurred while updating event: {str(e)}")
 
 
-    
+# delete method to remove an event from dynamodb
+@app.delete("/api/admin/delete-event/{event_id}")
+async def delete_event(event_id: str):
+    try:
+        dynamodb.delete_item(
+            TableName="events_data",
+            Key={
+                "id": {"S": event_id}
+            }
+        )
+        print(f"Event '{event_id}' deleted successfully from DynamoDB.")
+        return {"message": f"Event '{event_id}' deleted successfully."}
 
-    
-
-            
-
-
-
-
-
-
-    
+    except Exception as e:
+        print(f"Error deleting event: {e}")
+        raise HTTPException(status_code=500, detail=f"Error occurred while deleting event: {str(e)}")
 
