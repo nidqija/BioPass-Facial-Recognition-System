@@ -130,7 +130,7 @@ export default function DashboardPage() {
                 Manage Events
               </a>
 
-              < a href="/admin/attendance"
+              <button
                 type="button"
                 onClick={() => setActiveTab("attendance")}
                 className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-all cursor-pointer ${
@@ -141,7 +141,7 @@ export default function DashboardPage() {
               >
                 <BarChart3 className="w-4 h-4" />
                 View Attendance Metrics
-              </a>
+              </button>
             </div>
 
             <div className="hidden md:flex items-center gap-2 text-xs text-slate-400">
