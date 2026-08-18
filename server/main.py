@@ -2,7 +2,7 @@ from datetime import datetime, timedelta, timezone
 import secrets
 
 # pyrefly: ignore [missing-import]
-from fastapi import FastAPI, File, Form, HTTPException, UploadFile
+from fastapi import FastAPI, File, Form, HTTPException, UploadFile , Request
 # pyrefly: ignore [missing-import]
 from fastapi.middleware.cors import CORSMiddleware
 import json
@@ -11,7 +11,7 @@ import json
 from jwt.exceptions import PyJWTError
 # pyrefly: ignore [missing-import]
 import jwt
-from typing import Dict
+from typing import Dict , Set
 from interface import CustomerDetails, CustomerRegistration , EventDetails
 from mailpit.login_request import LoginRequest, VerifyOTPRequest, hash_code, send_otp_email
 from floci_backend.dynamodb_config import dynamodb
@@ -22,12 +22,16 @@ from yolo.image_detection_from_floci import load_s3_reference_faces, load_s3_ref
 import asyncio
 import uuid
 
+from server_side_events.sse_events import event_queue, sse_subscribers, dispatch_events
+
 app = FastAPI()
+
+@app.on_event("startup")
+async def startup_event():
+    asyncio.create_task(dispatch_events())
 
 SMTP_SERVER = "localhost"
 SMTP_PORT = 8025 
-
-
 
 app.add_middleware(
     CORSMiddleware,
@@ -36,26 +40,43 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
+    
 otp_storage: Dict[str, dict] = {}
 
 
+@app.get("/api/events")
+async def sse_events(request: Request):
+    client_queue = asyncio.Queue()
+    sse_subscribers.add(client_queue)
 
-# init the event queue for the video verification notifier
-# only applies from server to client
-event_queue = asyncio.Queue()
+    async def event_stream():
+        try:
+            while True:
+                if await request.is_disconnected():
+                    break
+                event_data = await client_queue.get()
+                yield f"data: {json.dumps(event_data)}\n\n"
+        except asyncio.CancelledError:
+            pass
+        finally:
+            sse_subscribers.discard(client_queue)
+
+    return StreamingResponse(
+        event_stream(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no"
+        }
+    )
+
+                
+
+    
 
 
-# async function to handle event notifier
-# we use async to enable concurrent handling of multiple clients and events
-async def event_notifier():
-
-    # while true , await for any incoming events from the event queue and yield them to the client
-    while True:
-        event_data = await event_queue.get()
-        yield f"data: {json.dumps(event_data)}\n\n"
-
-
+    
 
 @app.get("/")
 def get_root():
