@@ -362,6 +362,42 @@ async def fetch_events_for_admin():
         print(f"Error fetching events for admin: {e}")
         return {"message": f"Error occurred while fetching events for admin: {str(e)}"}
 
+# post method to add new event to dynamodb for admin panel
+@app.post("/api/admin/add-event")
+async def add_event(event:EventDetails):
+    try:
+        
+        dynamodb.put_item(
+            TableName="events_data",
+            Item={
+                "id": {"S": event.eventId},
+                "artist": {"S": event.artist},
+                "genre": {"S": event.genre},
+                "venue": {"S": event.venue},
+                "city": {"S": event.city},
+                "date": {"S": event.date},
+                "doorsOpen": {"S": event.doorsOpen},
+                "price": {"S": event.price},
+                "tier": {"S": event.tier},
+                "status": {"S": event.status},
+                "accentColor": {"S": event.accentColor}
+            }
+        )
+
+        print(f"Event '{event.artist}' added successfully to DynamoDB.")
+        return {"message": f"Event '{event.artist}' added successfully."}
+
+        
+
+    except Exception as e:
+        print(f"Error adding event: {e}")
+        return {"message": f"Error occurred while adding event: {str(e)}"}
+
+
+
+
+    
+
     
 
             
